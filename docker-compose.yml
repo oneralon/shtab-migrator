@@ -10,7 +10,7 @@ services:
     ports:
       - '3000:3000'
     environment:
-      DEBUG: 'true'
+      LOAD_EXAMPLE_DATA: 'true'
     depends_on:
       - dynamodb
       - postgres
