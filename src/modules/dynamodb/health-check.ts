@@ -52,9 +52,14 @@ export class HealthCheck implements OnModuleInit {
           await this.dynamoDb.send(new PutItemCommand({ TableName: dynamoDb.donationsTable, Item: item }));
         }
 
+        if (!tables.includes(dynamoDb.donationsTable)) {
+          throw new Error(`Donations table ${ dynamoDb.donationsTable } does not exist`);
+        }
+
         this.logger.warn('DynamoDB test data added');
       }
     } catch (e) {
+      this.logger.error(e);
       this.logger.error('DynamoDB health check failed');
     }
   }

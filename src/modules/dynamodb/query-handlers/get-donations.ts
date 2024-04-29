@@ -1,4 +1,4 @@
-import { DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, ScanCommand, ScanCommandInput } from '@aws-sdk/client-dynamodb';
 import { Inject } from '@nestjs/common';
 import { IInferredQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Email, Name } from 'src/core';
@@ -10,14 +10,16 @@ export class GetDonationsQueryHandler implements IInferredQueryHandler<GetDonati
   @Inject()
   private readonly dynamoDb: DynamoDBClient;
 
-  public async execute({ exclusiveStartKey }: GetDonationsQuery) {
-    const command = new ScanCommand({
+  public async execute({ exclusiveStartKey, since }: GetDonationsQuery) {
+    const query: ScanCommandInput = {
       TableName: dynamoDb.donationsTable,
       Limit: 10,
       ExclusiveStartKey: exclusiveStartKey,
-    });
+      FilterExpression: 'created_at > :since',
+      ExpressionAttributeValues: { ':since': { S: (since ?? new Date(0)).toISOString() } },
+    };
 
-    const { Items, LastEvaluatedKey } = await this.dynamoDb.send(command);
+    const { Items, LastEvaluatedKey } = await this.dynamoDb.send(new ScanCommand(query));
 
     return {
       items: Items.map(item => ({

@@ -13,6 +13,7 @@ type Output = { items: Array<Donation>, last?: Record<string, AttributeValue> };
 export class GetDonationsQuery extends Query<Output> {
   constructor(
     public readonly exclusiveStartKey?: Record<string, AttributeValue>,
+    public readonly since?: Date,
   ) {
     super();
   }

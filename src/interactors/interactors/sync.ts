@@ -9,7 +9,7 @@ import {
   CreateSyncCommand,
   UpdateDonorCommand,
 } from 'src/modules/postgres';
-import { FindDonorQuery } from 'src/modules/postgres/queries';
+import { FindDonorQuery, FindLastSyncQuery } from 'src/modules/postgres/queries';
 
 @Injectable()
 export class SyncInteractor {
@@ -25,7 +25,7 @@ export class SyncInteractor {
 
   private running = false;
 
-  @Cron('* */1 * * *')
+  @Cron('* */30 * * *')
   public async execute() {
     if (this.running) {
       this.logger.verbose('Already running');
@@ -42,8 +42,10 @@ export class SyncInteractor {
       let skipped = 0;
       let processed = 0;
 
+      const lastSync = await this.queryBus.execute(new FindLastSyncQuery());
+
       do {
-        const value = await this.queryBus.execute(new GetDonationsQuery(last));
+        const value = await this.queryBus.execute(new GetDonationsQuery(last, lastSync?.createdAt));
 
         await Promise.all(value.items.map(async ({ name, email }) => {
           if (this.testRegExp.test(name) || this.testRegExp.test(email)) {
@@ -90,7 +92,7 @@ export class SyncInteractor {
         `Added ${ added }, updated ${ updated } donors`,
         `Skipped ${ skipped } test donation records`,
         `Processed ${ processed } DynamoDB records`
-      ].join('\n');
+      ].join('. ');
 
       await this.commandBus.execute(new CreateSyncCommand(message));
 
